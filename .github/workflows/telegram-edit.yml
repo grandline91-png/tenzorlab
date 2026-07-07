@@ -1,0 +1,137 @@
+name: Telegram site edit
+
+on:
+  repository_dispatch:
+    types: [site-edit, site-rollback]
+
+concurrency:
+  group: site-edit
+
+permissions:
+  contents: write
+
+jobs:
+  edit:
+    if: github.event.action == 'site-edit'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Apply edit
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          REQUEST: ${{ github.event.client_payload.request }}
+        run: |
+          set -o pipefail
+          cat > /tmp/prompt.txt <<'PROMPT'
+          Ты — редактор статического сайта tenzorlab.ru (лендинг конструкторского бюро «Тензор»).
+          Файлы сайта в текущей папке: index.html (главная страница), privacy.html (политика конфиденциальности).
+
+          Правила:
+          - Вноси только то, о чём просят: тексты, цены, контакты, ссылки, пункты списков.
+          - Сохраняй существующий стиль, CSS-классы и структуру HTML. Дизайн и CSS не трогай, если об этом прямо не просят.
+          - Меняй ТОЛЬКО index.html и/или privacy.html. Никакие другие файлы не создавай и не изменяй.
+          - Если запрос непонятен, противоречив или не относится к содержимому сайта — не меняй ничего.
+
+          В самом конце выведи ровно одно короткое сообщение (1–3 предложения, по-русски, без markdown) для владельца сайта: что именно изменено; либо, если ничего не изменено, — почему, и какой уточняющий вопрос.
+
+          Запрос владельца сайта:
+          PROMPT
+          printf '%s\n' "$REQUEST" >> /tmp/prompt.txt
+          claude -p "$(cat /tmp/prompt.txt)" --permission-mode bypassPermissions > /tmp/summary.txt
+          echo "--- summary ---"
+          cat /tmp/summary.txt
+
+      - name: Commit and push
+        id: commit
+        env:
+          REQUEST: ${{ github.event.client_payload.request }}
+        run: |
+          BAD=$(git status --porcelain | awk '{print $2}' | grep -v -E '^(index|privacy)\.html$' || true)
+          if [ -n "$BAD" ]; then
+            git checkout -- .
+            git clean -fd
+            echo "blocked=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git diff --quiet; then
+            echo "changed=0" >> "$GITHUB_OUTPUT"
+          else
+            git config user.name "tenzorlab-bot"
+            git config user.email "bot@users.noreply.github.com"
+            git add index.html privacy.html
+            git commit -m "Telegram edit: $(echo "$REQUEST" | head -c 60)"
+            git push
+            echo "changed=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Notify
+        if: always()
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ github.event.client_payload.chat_id }}
+          CHANGED: ${{ steps.commit.outputs.changed }}
+          BLOCKED: ${{ steps.commit.outputs.blocked }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          SUMMARY=$(cat /tmp/summary.txt 2>/dev/null || true)
+          if [ "$JOB_STATUS" != "success" ]; then
+            TEXT="⚠️ Не получилось применить правку — техническая ошибка. Попробуйте ещё раз чуть позже."
+          elif [ "$BLOCKED" = "1" ]; then
+            TEXT="⚠️ Правка затронула служебные файлы и была отклонена для безопасности. Сформулируйте запрос иначе."
+          elif [ "$CHANGED" = "1" ]; then
+            TEXT="✅ ${SUMMARY}
+
+          Сайт обновится в течение 1–2 минут: https://tenzorlab.ru"
+          else
+            TEXT="ℹ️ ${SUMMARY}"
+          fi
+          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d chat_id="${CHAT_ID}" \
+            --data-urlencode text="${TEXT:0:3900}" > /dev/null
+
+  rollback:
+    if: github.event.action == 'site-rollback'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 10
+
+      - name: Revert last bot edit
+        id: revert
+        run: |
+          LAST_MSG=$(git log -1 --pretty=%s)
+          if echo "$LAST_MSG" | grep -q '^Telegram edit:'; then
+            git config user.name "tenzorlab-bot"
+            git config user.email "bot@users.noreply.github.com"
+            git revert --no-edit HEAD
+            git push
+            echo "reverted=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "reverted=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Notify
+        if: always()
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ github.event.client_payload.chat_id }}
+          REVERTED: ${{ steps.revert.outputs.reverted }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ "$JOB_STATUS" != "success" ]; then
+            TEXT="⚠️ Не получилось откатить — техническая ошибка. Попробуйте ещё раз."
+          elif [ "$REVERTED" = "1" ]; then
+            TEXT="↩️ Последняя правка отменена. Сайт вернётся к прежней версии через 1–2 минуты."
+          else
+            TEXT="ℹ️ Откатывать нечего: последнее изменение сайта сделано не через бота."
+          fi
+          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d chat_id="${CHAT_ID}" \
+            --data-urlencode text="${TEXT}" > /dev/null
