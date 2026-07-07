@@ -5,4 +5,4 @@ compatibility_date = "2026-07-01"
 [vars]
 GH_REPO = "grandline91-png/tenzorlab"
 # Telegram ID владельцев: сначала админ, потом заказчик (через запятую)
-ALLOWED_IDS = "PLACEHOLDER"
+ALLOWED_IDS = "781778246"
