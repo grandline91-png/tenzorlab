@@ -464,15 +464,7 @@ footer{padding:64px 0 80px}
           <p class="form-note">Нажимая кнопку, вы соглашаетесь с <a href="privacy.html" style="color:inherit">политикой конфиденциальности</a>.</p>
         </form>
         <div id="after-submit" hidden>
-          <p class="mono" style="font-size:13px;color:var(--accent-dark);letter-spacing:.08em;margin-bottom:14px">ЗАЯВКА ГОТОВА — ОТПРАВЬТЕ ОДНИМ НАЖАТИЕМ</p>
-          <div class="contact-ways" style="margin-top:0">
-            <a class="way" id="send-wa" href="#" target="_blank" rel="noopener"><span class="mono">WHATSAPP</span><b>Отправить в WhatsApp</b></a>
-            <a class="way" id="send-tg" href="https://t.me/dupaser2" target="_blank" rel="noopener"><span class="mono">TELEGRAM</span><b>Отправить в Telegram — текст скопируется, вставьте в чат</b></a>
-            <a class="way" id="send-mail" href="#"><span class="mono">ПОЧТА</span><b>Отправить письмом</b></a>
-            <button class="way" type="button" id="copy-lead"><span class="mono">КОПИЯ</span><b>Скопировать текст заявки</b></button>
-            <a class="way" href="tel:+79002004997"><span class="mono">ЗВОНОК</span><b>или позвоните: +7 900 200-49-97</b></a>
-          </div>
-          <p class="form-note">Выберите удобный способ — текст заявки уже подставлен.</p>
+          <p class="mono" style="font-size:13px;color:var(--accent-dark);letter-spacing:.08em">ЗАЯВКА ОТПРАВЛЕНА</p>
         </div>
       </div>
     </div>
@@ -518,36 +510,27 @@ document.getElementById('hero-btn').addEventListener('click',()=>{
   if(v) document.getElementById('f-idea').value=v;
 });
 
-// форма заявки: без бэкенда — формируем текст и даём отправить в один тап
+// форма заявки: автоматическая отправка на почту (без бэкенда, через FormSubmit)
 document.getElementById('lead-form').addEventListener('submit',(e)=>{
   e.preventDefault();
   const name=document.getElementById('f-name').value.trim();
   const phone=document.getElementById('f-phone').value.trim();
   const idea=document.getElementById('f-idea').value.trim();
-  const text=`Заявка с сайта КБ Тензор\nИмя: ${name}\nТелефон: ${phone}\nЧто хотим выпустить: ${idea||'—'}`;
-  // автоматическая отправка заявки на почту (без бэкенда, через FormSubmit)
   fetch('https://formsubmit.co/ajax/tenzor_lab@mail.ru',{
     method:'POST',
     headers:{'Content-Type':'application/json','Accept':'application/json'},
     body:JSON.stringify({Имя:name,Телефон:phone,'Что хотим выпустить':idea||'—',_subject:'Заявка на разбор изделия с сайта'})
   }).catch(()=>{});
-  document.getElementById('send-wa').href='https://wa.me/79002004997?text='+encodeURIComponent(text);
-  document.getElementById('send-mail').href='mailto:tenzor_lab@mail.ru?subject='+encodeURIComponent('Заявка на разбор изделия')+'&body='+encodeURIComponent(text);
-  document.getElementById('copy-lead').dataset.text=text;
-  document.getElementById('send-tg').dataset.text=text;
-  document.getElementById('lead-form').hidden=true;
-  document.getElementById('after-submit').hidden=false;
+  const leadForm=document.getElementById('lead-form');
+  const afterSubmit=document.getElementById('after-submit');
+  leadForm.hidden=true;
+  afterSubmit.hidden=false;
   if(typeof ym!=='undefined'){ym(window.__ym_id,'reachGoal','lead');} // цель Метрики (после установки счётчика)
-});
-
-// копирование текста заявки
-document.getElementById('copy-lead').addEventListener('click',function(){
-  copyText(this.dataset.text||'',this,'текст скопирован');
-});
-
-// Telegram: копируем текст заявки перед переходом в чат
-document.getElementById('send-tg').addEventListener('click',function(){
-  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(this.dataset.text||'');}
+  setTimeout(()=>{
+    leadForm.reset();
+    afterSubmit.hidden=true;
+    leadForm.hidden=false;
+  },2000);
 });
 
 // Telegram / MAX: копируем номер (заменить на прямую ссылку, когда появится username)
