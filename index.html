@@ -525,6 +525,12 @@ document.getElementById('lead-form').addEventListener('submit',(e)=>{
   const phone=document.getElementById('f-phone').value.trim();
   const idea=document.getElementById('f-idea').value.trim();
   const text=`Заявка с сайта КБ Тензор\nИмя: ${name}\nТелефон: ${phone}\nЧто хотим выпустить: ${idea||'—'}`;
+  // автоматическая отправка заявки на почту (без бэкенда, через FormSubmit)
+  fetch('https://formsubmit.co/ajax/tenzor_lab@mail.ru',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Accept':'application/json'},
+    body:JSON.stringify({Имя:name,Телефон:phone,'Что хотим выпустить':idea||'—',_subject:'Заявка на разбор изделия с сайта'})
+  }).catch(()=>{});
   document.getElementById('send-wa').href='https://wa.me/79002004997?text='+encodeURIComponent(text);
   document.getElementById('send-mail').href='mailto:tenzor_lab@mail.ru?subject='+encodeURIComponent('Заявка на разбор изделия')+'&body='+encodeURIComponent(text);
   document.getElementById('copy-lead').dataset.text=text;
