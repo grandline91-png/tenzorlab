@@ -42,9 +42,14 @@ jobs:
           Запрос владельца сайта:
           PROMPT
           printf '%s\n' "$REQUEST" >> /tmp/prompt.txt
-          claude -p "$(cat /tmp/prompt.txt)" --permission-mode bypassPermissions > /tmp/summary.txt
-          echo "--- summary ---"
+          set +e
+          claude -p "$(cat /tmp/prompt.txt)" --permission-mode bypassPermissions > /tmp/summary.txt 2> /tmp/claude.err
+          CODE=$?
+          echo "--- summary (stdout) ---"
           cat /tmp/summary.txt
+          echo "--- stderr ---"
+          cat /tmp/claude.err
+          exit $CODE
 
       - name: Commit and push
         id: commit
