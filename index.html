@@ -149,6 +149,9 @@ h1 em{font-style:normal;color:var(--accent);position:relative;white-space:nowrap
   display:flex;gap:14px;align-items:flex-start;
   border:1px solid rgba(244,242,236,.35);padding:18px 20px;font-size:16px;
 }
+.pains-3{grid-template-columns:repeat(3,1fr)}
+.pains-3 .pain{border-color:var(--line-strong);color:var(--ink)}
+.nowrap{white-space:nowrap}
 .pain .mono{color:var(--accent);font-size:14px;padding-top:2px}
 .recognize .after{margin-top:28px;font-family:var(--font-mono);font-size:14px;color:rgba(244,242,236,.78)}
 
@@ -325,10 +328,9 @@ footer{padding:64px 0 80px}
 <!-- ═══ БЛОК 2Б. HERO: ПЕРЕРАБОТКА ПРОДУКТА ═══ -->
 <section class="hero grid-bg">
   <div class="wrap">
-    <h1>Есть <em>продукт</em>, который не продаётся?<br><br>Переработаем изделие: поднимем <em>маржинальность</em> и упростим <em>продажи</em></h1>
-    <p class="hero-sub">Что получаете:</p>
+    <h1>Есть <em>продукт</em>, который не продаётся?<br><br>Переработаем изделие: <span class="nowrap">поднимем <em>маржинальность</em></span> и упростим <em>продажи</em></h1>
 
-    <div class="pains reveal">
+    <div class="pains pains-3 reveal">
       <div class="pain"><span class="mono">▸</span>Новый внешний вид, который выбирают покупатели</div>
       <div class="pain"><span class="mono">▸</span>Производство без изменения оборудования</div>
       <div class="pain"><span class="mono">▸</span>Первая партия обновлённого продукта — от 2 недель</div>
