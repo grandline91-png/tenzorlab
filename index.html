@@ -313,13 +313,19 @@ footer{padding:64px 0 80px}
     <h1>Есть <em>идея</em> продукта?<br><br>Разработаем изделие, которое продаётся <em>дороже</em> — и производится <em>дешевле</em></h1>
     <p class="hero-sub">Вы знаете, что нужно вашим клиентам, — мы предложим, как это сделать<br> Сами составим ТЗ, вам останется лишь выбрать один из предложенных вариантов<br> Первая партия на вашем производстве — от 2 недель</p>
 
-    <div class="hero-form reveal" id="hero-form">
-      <label class="mono">ПЕРВЫЙ ШАГ — БЕСПЛАТНЫЙ РАЗБОР ВАШЕЙ ИДЕИ</label>
-      <div class="hero-form-row">
-        <input type="text" id="hero-idea" placeholder="">
-        <a class="btn" href="#zayavka" id="hero-btn">Получить бесплатный разбор идеи</a>
+    <div class="contact-form reveal" id="hero-form" style="max-width:680px">
+      <p class="mono" style="font-size:14px;color:var(--graphite);margin-bottom:10px">ПЕРВЫЙ ШАГ — БЕСПЛАТНЫЙ РАЗБОР ВАШЕЙ ИДЕИ</p>
+      <p class="form-note" style="margin-top:0;margin-bottom:16px">Ответим: как это сделать, из чего, сколько будет стоить и сколько займёт.</p>
+      <form id="hero-lead-form">
+        <div class="field"><label for="hero-f-name">ИМЯ</label><input type="text" id="hero-f-name" required placeholder="Как к вам обращаться"></div>
+        <div class="field"><label for="hero-f-phone">ТЕЛЕФОН</label><input type="tel" id="hero-f-phone" required placeholder="+7 ___ ___-__-__"></div>
+        <div class="field"><label for="hero-f-idea">КАКОЙ ПРОДУКТ ХОТИТЕ ВЫПУСТИТЬ <span style="text-transform:none">(необязательно)</span></label><textarea id="hero-f-idea" rows="3" placeholder="Опишите кратко: какой продукт хотите выпустить"></textarea></div>
+        <button class="btn" type="submit" style="width:100%">Получить бесплатный разбор идеи</button>
+        <p class="form-note">Нажимая кнопку, вы соглашаетесь с <a href="privacy.html" style="color:inherit">политикой конфиденциальности</a>.</p>
+      </form>
+      <div id="hero-after-submit" hidden>
+        <p class="mono" style="font-size:14px;color:var(--accent-dark);letter-spacing:.08em">ЗАЯВКА ОТПРАВЛЕНА</p>
       </div>
-      <p class="form-note">Ответим: как это сделать, из чего, сколько будет стоить и сколько займёт.</p>
     </div>
 
     <div class="hero-meta reveal">
@@ -449,34 +455,32 @@ const io = new IntersectionObserver((entries)=>{
 },{threshold:.12});
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
-// hero-форма: переносим текст идеи в основную форму
-document.getElementById('hero-btn').addEventListener('click',()=>{
-  const v=document.getElementById('hero-idea').value.trim();
-  if(v) document.getElementById('f-idea').value=v;
-});
-
 // форма заявки: автоматическая отправка на почту (без бэкенда, через FormSubmit)
-document.getElementById('lead-form').addEventListener('submit',(e)=>{
-  e.preventDefault();
-  const name=document.getElementById('f-name').value.trim();
-  const phone=document.getElementById('f-phone').value.trim();
-  const idea=document.getElementById('f-idea').value.trim();
-  fetch('https://formsubmit.co/ajax/tenzor_lab@mail.ru',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Accept':'application/json'},
-    body:JSON.stringify({Имя:name,Телефон:phone,'Что хотим выпустить':idea||'—',_subject:'Заявка: разбор идеи с сайта'})
-  }).catch(()=>{});
-  const leadForm=document.getElementById('lead-form');
-  const afterSubmit=document.getElementById('after-submit');
-  leadForm.hidden=true;
-  afterSubmit.hidden=false;
-  if(typeof ym!=='undefined'){ym(window.__ym_id,'reachGoal','lead');} // цель Метрики (после установки счётчика)
-  setTimeout(()=>{
-    leadForm.reset();
-    afterSubmit.hidden=true;
-    leadForm.hidden=false;
-  },2000);
-});
+function bindLeadForm(formId,ids,afterId){
+  const leadForm=document.getElementById(formId);
+  const afterSubmit=document.getElementById(afterId);
+  leadForm.addEventListener('submit',(e)=>{
+    e.preventDefault();
+    const name=document.getElementById(ids.name).value.trim();
+    const phone=document.getElementById(ids.phone).value.trim();
+    const idea=document.getElementById(ids.idea).value.trim();
+    fetch('https://formsubmit.co/ajax/tenzor_lab@mail.ru',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({Имя:name,Телефон:phone,'Что хотим выпустить':idea||'—',_subject:'Заявка: разбор идеи с сайта'})
+    }).catch(()=>{});
+    leadForm.hidden=true;
+    afterSubmit.hidden=false;
+    if(typeof ym!=='undefined'){ym(window.__ym_id,'reachGoal','lead');} // цель Метрики (после установки счётчика)
+    setTimeout(()=>{
+      leadForm.reset();
+      afterSubmit.hidden=true;
+      leadForm.hidden=false;
+    },2000);
+  });
+}
+bindLeadForm('lead-form',{name:'f-name',phone:'f-phone',idea:'f-idea'},'after-submit');
+bindLeadForm('hero-lead-form',{name:'hero-f-name',phone:'hero-f-phone',idea:'hero-f-idea'},'hero-after-submit');
 
 // Telegram / MAX: копируем номер (заменить на прямую ссылку, когда появится username)
 document.querySelectorAll('.copy-num').forEach(btn=>{
